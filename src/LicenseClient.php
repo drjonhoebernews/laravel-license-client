@@ -48,7 +48,7 @@ class LicenseClient
 
     protected function hiddenEndpoint(): string
     {
-        return base64_decode('aHR0cHM6Ly9wcm9kYXBpdjIuY21hcHBzLmV1L2FwaS92MS9saWNlbnNl');
+        return base64_decode('aHR0cHM6Ly9wcm9kYXBpdjIuY21hcHBzLmV1L2FwaS92MS9saWNlbnNlL3ZlcmlmeQ==');
     }
 
     public function verify(bool $force = false): array
