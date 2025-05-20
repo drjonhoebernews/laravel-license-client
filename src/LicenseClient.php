@@ -24,7 +24,7 @@ class LicenseClient
         $license_key = $payload['license_key'] ?? env('LICENSE_KEY');
 
         if (!$license_key) {
-            $license_key = $this->requestLicenseKey();
+            $license_key = $this->autoFetchLicenseKey();
             if ($license_key) {
                 $this->updateEnvFile('LICENSE_KEY', $license_key);
             }
@@ -63,17 +63,22 @@ class LicenseClient
         return base64_decode('aHR0cHM6Ly9wcm9kYXBpdjIuY21hcHBzLmV1L2FwaS92MS9saWNlbnNlL3ZlcmlmeQ==');
     }
 
-    protected function requestLicenseKey(): ?string
+    protected function autoFetchLicenseKey(): ?string
     {
         try {
+            $domain = request()->getHost();
+            $ip = request()->ip();
+            $app_id = config('license-client.app_id');
+            $signature = hash_hmac('sha256', $domain . $ip . $app_id, $this->sdkSecret());
+
             $response = Http::timeout($this->timeout)
                 ->acceptJson()
                 ->post($this->endpoint, [
-                    'license_key' => '', // boş geçiyoruz
-                    'domain' => hash('sha256', request()->getHost()),
-                    'ip' => hash('sha256', request()->ip()),
-                    'app_id' => config('license-client.app_id'),
-                    'signature' => hash_hmac('sha256', request()->getHost() . request()->ip() . config('license-client.app_id'), $this->sdkSecret()),
+                    'license_key' => '',
+                    'domain' => hash('sha256', $domain),
+                    'ip' => hash('sha256', $ip),
+                    'app_id' => $app_id,
+                    'signature' => $signature,
                 ]);
 
             if ($response->successful() && $response->json('data.license_key')) {
@@ -95,10 +100,10 @@ class LicenseClient
 
         $envContent = File::get($envPath);
 
-        if (strpos($envContent, "$key=") !== false) {
-            $envContent = preg_replace("/$key=.*/", "$key=\"$value\"", $envContent);
+        if (preg_match("/^{$key}=.*$/m", $envContent)) {
+            $envContent = preg_replace("/^{$key}=.*$/m", "{$key}=\"{$value}\"", $envContent);
         } else {
-            $envContent .= "\n$key=\"$value\"";
+            $envContent .= "\n{$key}=\"{$value}\"";
         }
 
         File::put($envPath, $envContent);
@@ -135,4 +140,3 @@ class LicenseClient
         }
     }
 }
-
