@@ -25,7 +25,7 @@ php artisan vendor:publish --tag=license-client-config
 
 .env dosyanıza aşağıdaki satırı ekleyin:
 ```
-LICENSE_APP_ID=your-app-id
+LICENSE_APP_ID=your-cmapps-app-id
 ```
 Bu app_id, lisans üretimi sırasında sunucu tarafında tanımlanmış ID ile eşleşmelidir.
 
