@@ -43,7 +43,6 @@ class LicenseClient
 
     protected function sdkSecret(): string
     {
-        // Bu key sadece senin SDK içinde olmalı, sunucu da bunu bilmek zorunda
         return 'XxM3t4S3cr3tK3yB3lirt!';
     }
 
