@@ -1,0 +1,22 @@
+{
+    "name": "cmapps/laravel-license-client",
+    "description": "Laravel SDK for License Verification",
+    "type": "library",
+    "require": {
+        "guzzlehttp/guzzle": "^7.9",
+        "illuminate/support": "^12.14"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Cmapps\\LaravelLicenseClient\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "CMapps",
+            "email": "support@cmapps.eu"
+        }
+    ],
+    "minimum-stability": "stable"
+}
