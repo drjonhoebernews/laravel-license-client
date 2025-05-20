@@ -42,14 +42,19 @@ class LicenseClient
         $rawDomain = $payload['domain'] ?? request()->getHost();
         $rawIp = $payload['ip'] ?? request()->ip();
         $app_id = config('license-client.app_id');
-        Log::info($license_key);
-        Log::info($rawDomain);
-        Log::info($rawIp);
-        Log::info($app_id);
-        $signatureData = strval($license_key) . strval($rawDomain) . strval($rawIp) . strval($app_id);
-        Log::info($signatureData);
+
+        $signatureData = implode('|', [
+            strval($license_key),
+            strval($rawDomain),
+            strval($rawIp),
+            strval($app_id),
+        ]);
+
+        Log::info("SignatureData: " . $signatureData);
+
         $signature = hash_hmac('sha256', $signatureData, $this->sdkSecret());
-        Log::info($signature);
+
+        Log::info("Generated Signature: " . $signature);
 
         return [
             'license_key' => $license_key,
