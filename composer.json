@@ -18,5 +18,12 @@
             "email": "support@cmapps.eu"
         }
     ],
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Cmapps\\LaravelLicenseClient\\LicenseClientServiceProvider"
+            ]
+        }
+    }
 }
