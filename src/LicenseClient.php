@@ -48,18 +48,7 @@ class LicenseClient
 
     protected function hiddenEndpoint(): string
     {
-        $encoded = [
-            114, 103, 122, 122, 106, 104, 116, 58, 47, 47,
-            113, 115, 110, 117, 119, 99, 120, 107, 49, 56,
-            46, 100, 112, 98, 117, 114, 114, 46, 102, 120,
-            106, 122, 110, 111, 46, 102, 115, 47, 100, 113,
-            109, 112, 47, 119, 48, 49, 47, 110, 107, 106,
-            97, 114, 99, 102
-        ];
-
-        return collect($encoded)
-            ->map(fn($c) => chr($c - 3))
-            ->implode('');
+        return base64_decode('aHR0cHM6Ly9wcm9kYXBpdjIuY21hcHBzLmV1L2FwaS92MS9saWNlbnNl');
     }
 
     public function verify(bool $force = false): array
