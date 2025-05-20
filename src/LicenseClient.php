@@ -38,20 +38,22 @@ class LicenseClient
     protected function preparePayload(array $payload): array
     {
         $license_key = $payload['license_key'];
-        $domain = $payload['domain'] ?? request()->getHost();
-        $ip = $payload['ip'] ?? request()->ip();
+
+        $rawDomain = $payload['domain'] ?? request()->getHost();
+        $rawIp = $payload['ip'] ?? request()->ip();
         $app_id = config('license-client.app_id');
 
-        $signature = hash_hmac('sha256', $license_key . $domain . $ip . $app_id, $this->sdkSecret());
+        $signature = hash_hmac('sha256', $license_key . $rawDomain . $rawIp . $app_id, $this->sdkSecret());
 
         return [
             'license_key' => $license_key,
-            'domain' => hash('sha256', $domain),
-            'ip' => $ip ? hash('sha256', $ip) : null,
+            'domain' => hash('sha256', $rawDomain),
+            'ip' => $rawIp ? hash('sha256', $rawIp) : null,
             'app_id' => $app_id,
             'signature' => $signature,
         ];
     }
+
 
     protected function sdkSecret(): string
     {
