@@ -8,135 +8,122 @@ use Illuminate\Support\Facades\Log;
 
 class LicenseClient
 {
-    protected string $endpoint;
-    protected array $payload;
-    protected int $timeout = 5;
+    protected string $e;
+    protected array $p;
+    protected int $t = 5;
 
-    public function __construct(array $payload = [])
+    public function __construct(array $d = [])
     {
         if (!function_exists('app')) {
-            throw new \RuntimeException('Laravel ortamı dışında kullanılamaz.');
+            throw new \RuntimeException('Environment Error');
         }
 
-        $this->endpoint = $this->hiddenEndpoint();
+        $this->e = $this->x();
 
-        $license_key = $payload['license_key'] ?? env('LICENSE_KEY');
+        $k = $d['license_key'] ?? env('LICENSE_KEY');
 
-        if (!$license_key) {
-            $license_key = $this->autoFetchLicenseKey();
-            if ($license_key) {
-                $this->updateEnvFile('LICENSE_KEY', $license_key);
+        if (!$k) {
+            $k = $this->z();
+            if ($k) {
+                $this->s('LICENSE_KEY', $k);
             }
         }
 
-        $payload['license_key'] = $license_key;
-        $this->payload = $this->preparePayload($payload);
+        $d['license_key'] = $k;
+        $this->p = $this->q($d);
     }
 
-    protected function preparePayload(array $payload): array
+    protected function q(array $d): array
     {
-        $license_key = $payload['license_key'] ?? '';
-        $rawDomain = $payload['domain'] ?? request()->getHost();
-        $rawIp = $payload['ip'] ?? request()->ip();
-        $app_id = config('license-client.app_id');
+        $k = $d['license_key'] ?? '';
+        $h = $d['domain'] ?? request()->getHost();
+        $i = $d['ip'] ?? request()->ip();
+        $a = config('license-client.app_id');
 
-        $signatureData = implode('|', [
-            strval($license_key),
-            strval($rawDomain),
-            strval($rawIp),
-            strval($app_id),
+        $c = implode('|', [
+            strval($k), strval($h), strval($i), strval($a),
         ]);
 
-        Log::info("SignatureData: " . $signatureData);
+        Log::info("SD: " . $c);
 
-        $signature = hash_hmac('sha256', $signatureData, $this->sdkSecret());
+        $sig = hash_hmac('sha256', $c, $this->g());
 
-        Log::info("Generated Signature: " . $signature);
+        Log::info("SIG: " . $sig);
 
         return [
-            'license_key' => $license_key,
-            'domain' => $rawDomain,
-            'ip' => $rawIp,
-            'app_id' => $app_id,
-            'signature' => $signature,
+            'license_key' => $k,
+            'domain' => $h,
+            'ip' => $i,
+            'app_id' => $a,
+            'signature' => $sig,
         ];
     }
 
-    protected function sdkSecret(): string
+    protected function g(): string
     {
         return 'XxM3t4S3cr3tK3yB3lirt!';
     }
 
-    protected function hiddenEndpoint(): string
+    protected function x(): string
     {
         return base64_decode('aHR0cHM6Ly9wcm9kYXBpdjIuY21hcHBzLmV1L2FwaS92MS9saWNlbnNlL3ZlcmlmeQ==');
     }
 
-    protected function autoFetchLicenseKey(): ?string
+    protected function z(): ?string
     {
         try {
-            $domain = request()->getHost();
-            $ip = request()->ip();
-            $app_id = config('license-client.app_id');
+            $h = request()->getHost();
+            $i = request()->ip();
+            $a = config('license-client.app_id');
 
-            $signatureData = implode('|', [
-                '',
-                $domain,
-                $ip,
-                $app_id,
-            ]);
+            $c = implode('|', ['', $h, $i, $a]);
+            $sig = hash_hmac('sha256', $c, $this->g());
 
-            $signature = hash_hmac('sha256', $signatureData, $this->sdkSecret());
-
-            $response = Http::timeout($this->timeout)
+            $r = Http::timeout($this->t)
                 ->acceptJson()
-                ->post($this->endpoint, [
+                ->post($this->e, [
                     'license_key' => '',
-                    'domain' => $domain,
-                    'ip' => $ip,
-                    'app_id' => $app_id,
-                    'signature' => $signature,
+                    'domain' => $h,
+                    'ip' => $i,
+                    'app_id' => $a,
+                    'signature' => $sig,
                 ]);
 
-            if ($response->successful() && $response->json('data.license_key')) {
-                return $response->json('data.license_key');
-            }
-
-            return null;
-        } catch (\Throwable $e) {
+            return $r->successful() && $r->json('data.license_key')
+                ? $r->json('data.license_key')
+                : null;
+        } catch (\Throwable $ex) {
             return null;
         }
     }
 
-    protected function updateEnvFile(string $key, string $value): void
+    protected function s(string $k, string $v): void
     {
-        $envPath = base_path('.env');
-        if (!File::exists($envPath) || !File::isWritable($envPath)) {
+        $f = base_path('.env');
+        if (!File::exists($f) || !File::isWritable($f)) {
             return;
         }
 
-        $envContent = File::get($envPath);
+        $c = File::get($f);
 
-        if (preg_match("/^{$key}=.*$/m", $envContent)) {
-            $envContent = preg_replace("/^{$key}=.*$/m", "{$key}=\"{$value}\"", $envContent);
-        } else {
-            $envContent .= "\n{$key}=\"{$value}\"";
-        }
+        $c = preg_match("/^{$k}=.*$/m", $c)
+            ? preg_replace("/^{$k}=.*$/m", "{$k}=\"{$v}\"", $c)
+            : $c . "\n{$k}=\"{$v}\"";
 
-        File::put($envPath, $envContent);
+        File::put($f, $c);
     }
 
-    public function verify(): array
+    public function v(): array
     {
         try {
-            $response = Http::timeout($this->timeout)
+            $r = Http::timeout($this->t)
                 ->acceptJson()
-                ->post($this->endpoint, $this->payload);
+                ->post($this->e, $this->p);
 
             return [
-                'valid' => $response->successful(),
-                'data' => $response->json('data'),
-                'message' => $response->json('message'),
+                'valid' => $r->successful(),
+                'data' => $r->json('data'),
+                'message' => $r->json('message'),
             ];
         } catch (\Throwable $e) {
             return [
