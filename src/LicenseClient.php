@@ -58,8 +58,8 @@ class LicenseClient
 
         return [
             'license_key' => $license_key,
-            'domain' => hash('sha256', $rawDomain),
-            'ip' => $rawIp ? hash('sha256', $rawIp) : null,
+            'domain' => $rawDomain,
+            'ip' => $rawIp,
             'app_id' => $app_id,
             'signature' => $signature,
         ];
@@ -81,14 +81,22 @@ class LicenseClient
             $domain = request()->getHost();
             $ip = request()->ip();
             $app_id = config('license-client.app_id');
-            $signature = hash_hmac('sha256', $domain . $ip . $app_id, $this->sdkSecret());
+
+            $signatureData = implode('|', [
+                '',
+                $domain,
+                $ip,
+                $app_id,
+            ]);
+
+            $signature = hash_hmac('sha256', $signatureData, $this->sdkSecret());
 
             $response = Http::timeout($this->timeout)
                 ->acceptJson()
                 ->post($this->endpoint, [
                     'license_key' => '',
-                    'domain' => hash('sha256', $domain),
-                    'ip' => hash('sha256', $ip),
+                    'domain' => $domain,
+                    'ip' => $ip,
                     'app_id' => $app_id,
                     'signature' => $signature,
                 ]);
