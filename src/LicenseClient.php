@@ -5,6 +5,7 @@ namespace Cmapps\LaravelLicenseClient;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 
 class LicenseClient
 {
@@ -37,13 +38,18 @@ class LicenseClient
 
     protected function preparePayload(array $payload): array
     {
-        $license_key = $payload['license_key'];
-
+        $license_key = $payload['license_key'] ?? '';
         $rawDomain = $payload['domain'] ?? request()->getHost();
         $rawIp = $payload['ip'] ?? request()->ip();
         $app_id = config('license-client.app_id');
-
-        $signature = hash_hmac('sha256', $license_key . $rawDomain . $rawIp . $app_id, $this->sdkSecret());
+        Log::info($license_key);
+        Log::info($rawDomain);
+        Log::info($rawIp);
+        Log::info($app_id);
+        $signatureData = strval($license_key) . strval($rawDomain) . strval($rawIp) . strval($app_id);
+        Log::info($signatureData);
+        $signature = hash_hmac('sha256', $signatureData, $this->sdkSecret());
+        Log::info($signature);
 
         return [
             'license_key' => $license_key,
@@ -53,7 +59,6 @@ class LicenseClient
             'signature' => $signature,
         ];
     }
-
 
     protected function sdkSecret(): string
     {
