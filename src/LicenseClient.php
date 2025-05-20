@@ -60,7 +60,7 @@ class LicenseClient
         try {
             $response = Http::timeout($this->timeout)
                 ->acceptJson()
-                ->post("{$this->endpoint}/verify", $this->payload);
+                ->post("{$this->endpoint}", $this->payload);
 
             $data = [
                 'valid' => $response->successful(),
