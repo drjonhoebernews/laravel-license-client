@@ -2,7 +2,6 @@
 
 namespace Cmapps\LaravelLicenseClient;
 
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -12,7 +11,6 @@ class LicenseClient
     protected string $endpoint;
     protected array $payload;
     protected int $timeout = 5;
-    protected string $cacheKey;
 
     public function __construct(array $payload = [])
     {
@@ -33,7 +31,6 @@ class LicenseClient
 
         $payload['license_key'] = $license_key;
         $this->payload = $this->preparePayload($payload);
-        $this->cacheKey = 'license_valid_' . md5($this->payload['license_key']);
     }
 
     protected function preparePayload(array $payload): array
@@ -129,28 +126,18 @@ class LicenseClient
         File::put($envPath, $envContent);
     }
 
-    public function verify(bool $force = false): array
+    public function verify(): array
     {
-        if (!$force && Cache::has($this->cacheKey)) {
-            return Cache::get($this->cacheKey);
-        }
-
         try {
             $response = Http::timeout($this->timeout)
                 ->acceptJson()
                 ->post($this->endpoint, $this->payload);
 
-            $data = [
+            return [
                 'valid' => $response->successful(),
                 'data' => $response->json('data'),
                 'message' => $response->json('message'),
             ];
-
-            if ($data['valid']) {
-                Cache::put($this->cacheKey, $data, now()->addMinutes(30));
-            }
-
-            return $data;
         } catch (\Throwable $e) {
             return [
                 'valid' => false,
