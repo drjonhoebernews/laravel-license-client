@@ -4,6 +4,7 @@ namespace Cmapps\LaravelLicenseClient;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\File;
 
 class LicenseClient
 {
@@ -12,13 +13,24 @@ class LicenseClient
     protected int $timeout = 5;
     protected string $cacheKey;
 
-    public function __construct(array $payload)
+    public function __construct(array $payload = [])
     {
         if (!function_exists('app')) {
             throw new \RuntimeException('Laravel ortamı dışında kullanılamaz.');
         }
 
         $this->endpoint = $this->hiddenEndpoint();
+
+        $license_key = $payload['license_key'] ?? env('LICENSE_KEY');
+
+        if (!$license_key) {
+            $license_key = $this->requestLicenseKey();
+            if ($license_key) {
+                $this->updateEnvFile('LICENSE_KEY', $license_key);
+            }
+        }
+
+        $payload['license_key'] = $license_key;
         $this->payload = $this->preparePayload($payload);
         $this->cacheKey = 'license_valid_' . md5($this->payload['license_key']);
     }
@@ -51,6 +63,47 @@ class LicenseClient
         return base64_decode('aHR0cHM6Ly9wcm9kYXBpdjIuY21hcHBzLmV1L2FwaS92MS9saWNlbnNlL3ZlcmlmeQ==');
     }
 
+    protected function requestLicenseKey(): ?string
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->acceptJson()
+                ->post($this->endpoint, [
+                    'license_key' => '', // boş geçiyoruz
+                    'domain' => hash('sha256', request()->getHost()),
+                    'ip' => hash('sha256', request()->ip()),
+                    'app_id' => config('license-client.app_id'),
+                    'signature' => hash_hmac('sha256', request()->getHost() . request()->ip() . config('license-client.app_id'), $this->sdkSecret()),
+                ]);
+
+            if ($response->successful() && $response->json('data.license_key')) {
+                return $response->json('data.license_key');
+            }
+
+            return null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    protected function updateEnvFile(string $key, string $value): void
+    {
+        $envPath = base_path('.env');
+        if (!File::exists($envPath) || !File::isWritable($envPath)) {
+            return;
+        }
+
+        $envContent = File::get($envPath);
+
+        if (strpos($envContent, "$key=") !== false) {
+            $envContent = preg_replace("/$key=.*/", "$key=\"$value\"", $envContent);
+        } else {
+            $envContent .= "\n$key=\"$value\"";
+        }
+
+        File::put($envPath, $envContent);
+    }
+
     public function verify(bool $force = false): array
     {
         if (!$force && Cache::has($this->cacheKey)) {
@@ -60,7 +113,7 @@ class LicenseClient
         try {
             $response = Http::timeout($this->timeout)
                 ->acceptJson()
-                ->post("{$this->endpoint}", $this->payload);
+                ->post($this->endpoint, $this->payload);
 
             $data = [
                 'valid' => $response->successful(),
@@ -82,3 +135,4 @@ class LicenseClient
         }
     }
 }
+
